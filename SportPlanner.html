@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sport Planner Pro</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load React and ReactDOM (UMD for local file support) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Load Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Dumbbell: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>,
+            Activity: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+            Shoe: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 11 3.8 13 5c2.4-1.2 5-1.2 7.03-.66 1.27.35 2.14 1.43 2.37 2.76.19 1.11-.2 2.22-1.03 2.9-.66.54-1.2 1.3-1.07 2.15.11.75.56 1.42 1.22 1.83.74.46 1.21 1.24 1.25 2.1.03.71-.24 1.4-.74 1.92-.61.64-1.48 1-2.37 1H4z"/><path d="M12 11h.01"/></svg>,
+            Bike: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>,
+            PlayCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>,
+            Moon: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>,
+            Sun: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>,
+            Calendar: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+            FileSpreadsheet: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>,
+            Download: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+            Save: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>,
+            Trash2: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
+            Plus: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+            Minus: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>,
+            Zap: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            Info: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
+            Clock: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            ArrowLeft: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
+            Upload: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+            Copy: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>,
+            Clipboard: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>,
+            ChevronUp: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>,
+            ChevronDown: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>,
+            Database: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+            Search: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+            Ruler: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0l12.6 12.6z"/><line x1="13" x2="19" y1="7" y2="13"/><line x1="5" x2="11" y1="15" y2="21"/></svg>,
+            Timer: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>,
+            Repeat: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>,
+            CheckCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            XCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>,
+            Circle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>,
+            Edit: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>,
+            Eye: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        };
+
+        // --- CONSTANTS ---
+        const TRAINING_TYPES = ['Gym', 'Running', 'Cycling', 'Football', 'Rest', 'Other'];
+        
+        const SUB_TYPES = {
+            Gym: ['Full body strength', 'Lower body strength', 'Upper body strength', 'Lower body strength-speed', 'Full body strength-speed', 'Push', 'Pull', 'Legs', 'Other'],
+            Running: ['Recovery run', 'Easy run', 'Chill run', 'Endurance run', 'Tempo run', 'Threshold interval run', 'VO2max interval run', 'Sprint interval run', 'Repeated sprint run', 'Long run', 'Race', 'Challenge', 'Other'],
+            Cycling: ['Recovery ride', 'Chill ride', 'Endurance ride', 'Tempo ride', 'Threshold interval ride', 'VO2max interval ride', 'Sprint interval ride', 'Repeated sprint ride', 'Long ride', 'Race', 'Challenge', 'Other'],
+            Football: ['Training', 'Match', 'Other'],
+            Rest: ['Active Recovery', 'Full Rest', 'Stretching', 'Massage'],
+            Other: ['Padel', 'Walking', 'Swimming', 'Yoga', 'Pilates', 'Hiking', 'Tennis']
+        };
+
+        const SUPERSET_COLORS = [
+            'bg-green-50 border-green-200', 
+            'bg-blue-50 border-blue-200', 
+            'bg-yellow-50 border-yellow-200', 
+            'bg-pink-50 border-pink-200', 
+            'bg-orange-50 border-orange-200', 
+            'bg-purple-50 border-purple-200',
+            'bg-red-50 border-red-200',
+            'bg-teal-50 border-teal-200'
+        ];
+        
+        const SUPERSET_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        const PERIODIZATION_OPTIONS = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Deload', 'Peak Week', 'Hypertrophy', 'Strength', 'Power', 'Other'];
+        const RUNNING_STEP_TYPES = ['W-up', 'Run', 'Recovery', 'Rest', 'C-down', 'Other'];
+        const DEFAULT_FITNESS_DATA = {
+            running: { lt1: { paceOrPower: '', hr: '' }, lt2: { paceOrPower: '', hr: '' }, vo2: { paceOrPower: '', hr: '' } },
+            cycling: { lt1: { paceOrPower: '', hr: '' }, lt2: { paceOrPower: '', hr: '' }, vo2: { paceOrPower: '', hr: '' } },
+            gym: [
+                { id: '1', name: 'Squat', weight: '' },
+                { id: '2', name: 'Bench Press', weight: '' },
+                { id: '3', name: 'Deadlift', weight: '' },
+                { id: '4', name: 'Pull Up', weight: '' },
+            ],
+            exerciseDatabase: [
+            ]
+        };
+
+        const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+        const getWeekNumber = (d) => {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+        };
+        const toISODate = (date) => date.toISOString().split('T')[0];
+        const getMondayDate = (inputDate) => {
+            const d = new Date(inputDate);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
+            return new Date(d.setDate(diff));
+        }
+        const getDefaultStartDate = () => toISODate(getMondayDate(new Date()));
+        const createEmptyDay = (dateObj) => {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return {
+                dayName: days[dateObj.getDay()],
+                date: dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+                cnsFatigue: null,
+                status: 'neutral', 
+                dailyNotes: '',
+                training1: { id: `t1-${dateObj.getTime()}`, type: null, subType: '', notes: '', time: '' },
+                training2: { id: `t2-${dateObj.getTime()}`, type: null, subType: '', notes: '', time: '' },
+            };
+        };
+
+        const calculateWorkoutStats = (session) => {
+            if (session.type !== 'Running' && session.type !== 'Cycling') return { totalDist: 0, totalTime: 0 };
+            if (!session.workoutStructure) return { totalDist: 0, totalTime: 0 };
+            
+            let totalDist = 0;
+            let totalTime = 0;
+
+            const parsePace = (str) => {
+                if(!str || !str.includes(':')) return 0;
+                const [m, s] = str.split(':').map(Number);
+                return m + s/60;
+            };
+            const parseTime = (str) => {
+                 if(!str || !str.includes(':')) return 0;
+                 const [m, s] = str.split(':').map(Number);
+                 return m + s/60;
+            };
+            const processStep = (step, mult = 1) => {
+                const pace = parsePace(step.intensityType === 'Pace' ? step.intensityValue : '0:0');
+                if (step.durationType === 'Distance') {
+                    const dist = parseFloat(step.durationValue) || 0;
+                    totalDist += dist * mult;
+                    if (pace > 0) totalTime += (dist * pace) * mult;
+                } else {
+                    const time = parseTime(step.durationValue);
+                    totalTime += time * mult;
+                    if (pace > 0) totalDist += (time / pace) * mult;
+                }
+            };
+            session.workoutStructure.forEach(comp => {
+                if (comp.isRepeat) comp.steps.forEach(s => processStep(s, comp.repeats));
+                else processStep(comp);
+            });
+            return { totalDist: totalDist.toFixed(1), totalTime: Math.round(totalTime) };
+        };
+
+        // --- COMPONENTS ---
+
+        const PeriodizationModal = ({ isOpen, onClose, onSelect, currentPhase }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in">
+                        <div className="bg-slate-800 p-4 flex justify-between items-center">
+                            <h3 className="text-white font-semibold">Select Week Phase</h3>
+                            <button onClick={onClose} className="text-gray-400 hover:text-white"><Icons.X size={20}/></button>
+                        </div>
+                        <div className="p-2 grid grid-cols-1 divide-y divide-gray-100 max-h-[60vh] overflow-y-auto">
+                            {PERIODIZATION_OPTIONS.map(opt => (
+                                <button key={opt} onClick={() => onSelect(opt)} className={`p-3 text-left hover:bg-blue-50 transition-colors text-sm font-medium ${currentPhase === opt ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}>{opt}</button>
+                            ))}
+                             <button onClick={() => onSelect('')} className="p-3 text-left hover:bg-red-50 text-red-600 transition-colors text-sm font-medium">Clear Phase</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const TimeSelector = ({ value, onChange, className }) => {
+            const [mins, secs] = value && value.includes(':') ? value.split(':') : ['', ''];
+            return (
+                <div className={`flex items-center gap-0.5 ${className}`}>
+                    <select value={mins} onChange={(e) => onChange(`${e.target.value}:${secs || '00'}`)} className="bg-gray-50 border border-gray-300 rounded text-sm py-1 px-1 outline-none w-1/2">
+                        <option value="">-</option>
+                        {[...Array(60)].map((_, i) => <option key={i} value={i.toString()}>{i}'</option>)}
+                    </select>
+                    <span className="text-gray-500">:</span>
+                    <select value={secs} onChange={(e) => onChange(`${mins || '0'}:${e.target.value}`)} className="bg-gray-50 border border-gray-300 rounded text-sm py-1 px-1 outline-none w-1/2">
+                        <option value="">-</option>
+                        {[...Array(60)].map((_, i) => <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}"</option>)}
+                    </select>
+                </div>
+            );
+        };
+
+        const DistanceSelector = ({ value, onChange, className }) => {
+            const [km, m] = value && value.includes('.') ? value.split('.') : ['', ''];
+            return (
+                 <div className={`flex items-center gap-0.5 ${className}`}>
+                    <select value={km} onChange={(e) => onChange(`${e.target.value}.${m || '0'}`)} className="bg-gray-50 border border-gray-300 rounded text-sm py-1 px-1 outline-none w-1/2">
+                        <option value="">-</option>
+                        {[...Array(61)].map((_, i) => <option key={i} value={i.toString()}>{i}</option>)}
+                    </select>
+                    <span className="text-gray-500">.</span>
+                    <select value={m} onChange={(e) => onChange(`${km || '0'}.${e.target.value}`)} className="bg-gray-50 border border-gray-300 rounded text-sm py-1 px-1 outline-none w-1/2">
+                         <option value="">-</option>
+                         {[...Array(10)].map((_, i) => <option key={i} value={i.toString()}>{i}</option>)}
+                    </select>
+                </div>
+            )
+        };
+
+        const TrainingModal = ({ isOpen, onClose, onSave, session, title, onCopy, onPaste, canPaste, fitnessData }) => {
+            const [editedSession, setEditedSession] = useState(session);
+            const [isEditing, setIsEditing] = useState(false);
+
+            useEffect(() => {
+                if (!isOpen) return;
+                const safeSession = JSON.parse(JSON.stringify(session)); 
+                
+                // Initialize arrays if missing
+                if (safeSession.type === 'Gym' && !safeSession.exercises) safeSession.exercises = [];
+                if (safeSession.type === 'Running' && !safeSession.workoutStructure) safeSession.workoutStructure = [];
+                
+                setEditedSession(safeSession);
+
+                // Default to Summary view if data exists, else Edit view
+                const hasGymData = safeSession.type === 'Gym' && safeSession.exercises && safeSession.exercises.length > 0;
+                const hasRunData = safeSession.type === 'Running' && safeSession.workoutStructure && safeSession.workoutStructure.length > 0;
+                setIsEditing(!(hasGymData || hasRunData));
+
+            }, [session, isOpen]);
+
+            if (!isOpen) return null;
+
+            // --- Handlers ---
+            const handleTypeChange = (e) => {
+                const newType = e.target.value;
+                setEditedSession({
+                    ...editedSession,
+                    type: newType || null,
+                    subType: '',
+                    exercises: newType === 'Gym' ? [] : undefined,
+                    workoutStructure: newType === 'Running' ? [] : undefined
+                });
+                setIsEditing(true); // Always edit when changing type
+            };
+
+            const handleClear = () => {
+                setEditedSession({ ...editedSession, type: null, subType: '', periodization: '', time: '', notes: '', rpe: undefined, exercises: undefined, workoutStructure: undefined });
+                setIsEditing(true);
+            }
+            
+            const handlePasteAction = () => {
+                if (onPaste) {
+                    const pasted = onPaste();
+                    if (pasted) {
+                        const newExercises = pasted.exercises?.map(ex => ({...ex, id: uid()})) || [];
+                        const newStructure = pasted.workoutStructure ? JSON.parse(JSON.stringify(pasted.workoutStructure)) : [];
+                        setEditedSession({ ...editedSession, type: pasted.type, subType: pasted.subType, periodization: pasted.periodization, notes: pasted.notes, exercises: newExercises, workoutStructure: newStructure, rpe: pasted.rpe, time: pasted.time });
+                        setIsEditing(false); // Go to summary after paste
+                    }
+                }
+            };
+
+            const getSupersetColor = (supersetId) => {
+                if (!supersetId) return SUPERSET_COLORS[0];
+                const index = (supersetId.charCodeAt(0) - 65); 
+                return SUPERSET_COLORS[index % SUPERSET_COLORS.length] || SUPERSET_COLORS[0];
+            }
+
+            // --- Gym Builders ---
+            const addExercise = (supersetId) => {
+                const newExercise = { id: uid(), name: '', weight: '', sets: 3, reps: '10', rpe: '-', supersetId: supersetId || 'A' };
+                let newExercises = [...(editedSession.exercises || [])];
+                if (supersetId) {
+                     let insertIndex = -1;
+                     for(let i = newExercises.length - 1; i >= 0; i--) { if(newExercises[i].supersetId === supersetId) { insertIndex = i; break; } }
+                     if (insertIndex >= 0) newExercises.splice(insertIndex + 1, 0, newExercise); else newExercises.push(newExercise);
+                } else { newExercises.push(newExercise); }
+                if(!supersetId) newExercises.sort((a, b) => (a.supersetId || 'A').localeCompare(b.supersetId || 'A'));
+                setEditedSession({ ...editedSession, exercises: newExercises });
+            };
+            const updateSupersetGroup = (id, newGroup) => {
+                const updated = editedSession.exercises.map(ex => ex.id === id ? { ...ex, supersetId: newGroup } : ex);
+                updated.sort((a, b) => (a.supersetId || 'A').localeCompare(b.supersetId || 'A'));
+                setEditedSession({ ...editedSession, exercises: updated });
+            };
+            const updateExercise = (id, field, value) => setEditedSession({ ...editedSession, exercises: editedSession.exercises?.map(ex => ex.id === id ? { ...ex, [field]: value } : ex) });
+            const removeExercise = (id) => setEditedSession({ ...editedSession, exercises: editedSession.exercises?.filter(ex => ex.id !== id) });
+            const moveExercise = (index, direction) => {
+                if (!editedSession.exercises) return;
+                const newExercises = [...editedSession.exercises];
+                if (direction === 'up' && index > 0) [newExercises[index], newExercises[index - 1]] = [newExercises[index - 1], newExercises[index]];
+                else if (direction === 'down' && index < newExercises.length - 1) [newExercises[index], newExercises[index + 1]] = [newExercises[index + 1], newExercises[index]];
+                setEditedSession({ ...editedSession, exercises: newExercises });
+            };
+
+            // --- Running Builders ---
+            const addRunStep = () => setEditedSession(prev => ({ ...prev, workoutStructure: [...(prev.workoutStructure || []), { id: uid(), type: 'Run', durationType: 'Distance', durationValue: '1.0', intensityType: 'Pace', intensityValue: '' }] }));
+            const addRepeatBlock = () => setEditedSession(prev => ({ ...prev, workoutStructure: [...(prev.workoutStructure || []), { id: uid(), isRepeat: true, repeats: 2, steps: [{ id: uid(), type: 'Run', durationType: 'Distance', durationValue: '1.0', intensityType: 'Pace', intensityValue: '' }] }] }));
+            const updateRunComponent = (id, field, value, parentId) => {
+                const newStructure = [...(editedSession.workoutStructure || [])];
+                const updateStep = (step) => ({ ...step, [field]: value });
+                if (parentId) {
+                    const blockIndex = newStructure.findIndex(c => c.id === parentId);
+                    if (blockIndex >= 0) newStructure[blockIndex].steps = newStructure[blockIndex].steps.map(s => s.id === id ? updateStep(s) : s);
+                } else {
+                    const index = newStructure.findIndex(c => c.id === id);
+                    if (index >= 0) { if (newStructure[index].isRepeat) newStructure[index][field] = value; else newStructure[index] = updateStep(newStructure[index]); }
+                }
+                setEditedSession({ ...editedSession, workoutStructure: newStructure });
+            };
+            const removeRunComponent = (id, parentId) => {
+                let newStructure = [...(editedSession.workoutStructure || [])];
+                if (parentId) {
+                    const blockIndex = newStructure.findIndex(c => c.id === parentId);
+                    if (blockIndex >= 0) newStructure[blockIndex].steps = newStructure[blockIndex].steps.filter(s => s.id !== id);
+                } else newStructure = newStructure.filter(c => c.id !== id);
+                setEditedSession({ ...editedSession, workoutStructure: newStructure });
+            };
+            const moveRunComponent = (id, direction, parentId) => {
+                const newStructure = [...(editedSession.workoutStructure || [])];
+                if (parentId) {
+                    const blockIndex = newStructure.findIndex(c => c.id === parentId);
+                    if (blockIndex === -1) return;
+                    const block = {...newStructure[blockIndex]};
+                    const steps = [...block.steps];
+                    const stepIndex = steps.findIndex(s => s.id === id);
+                    if (stepIndex === -1) return;
+                    if (direction === 'up' && stepIndex > 0) [steps[stepIndex], steps[stepIndex-1]] = [steps[stepIndex-1], steps[stepIndex]];
+                    else if (direction === 'down' && stepIndex < steps.length - 1) [steps[stepIndex], steps[stepIndex+1]] = [steps[stepIndex+1], steps[stepIndex]];
+                    block.steps = steps;
+                    newStructure[blockIndex] = block;
+                } else {
+                    const index = newStructure.findIndex(c => c.id === id);
+                    if (index === -1) return;
+                    if (direction === 'up' && index > 0) [newStructure[index], newStructure[index-1]] = [newStructure[index-1], newStructure[index]];
+                    else if (direction === 'down' && index < newStructure.length - 1) [newStructure[index], newStructure[index+1]] = [newStructure[index+1], newStructure[index]];
+                }
+                setEditedSession({ ...editedSession, workoutStructure: newStructure });
+            };
+            const addStepToBlock = (blockId) => {
+                const newStructure = [...(editedSession.workoutStructure || [])];
+                const block = newStructure.find(c => c.id === blockId);
+                if (block) { block.steps.push({ id: uid(), type: 'Recovery', durationType: 'Time', durationValue: '02:00', intensityType: 'None', intensityValue: '' }); setEditedSession({ ...editedSession, workoutStructure: newStructure }); }
+            };
+
+            const isGym = editedSession.type === 'Gym';
+            const isRunning = editedSession.type === 'Running';
+            const totals = calculateWorkoutStats(editedSession);
+            const availableSubTypes = editedSession.type && SUB_TYPES[editedSession.type] ? SUB_TYPES[editedSession.type] : [];
+            const dbList = fitnessData.exerciseDatabase || [];
+            const runningPresets = ['lt1', 'lt2', 'vo2'].map(k => fitnessData.running?.[k]?.paceOrPower).filter(Boolean);
+            const hrPresets = ['lt1', 'lt2', 'vo2'].map(k => fitnessData.running?.[k]?.hr).filter(Boolean);
+
+            // --- SUMMARY COMPONENTS ---
+            const GymSummary = ({ exercises }) => (
+                <div className="space-y-1">
+                    {exercises.map((ex, i) => {
+                        const bgClass = getSupersetColor(ex.supersetId || 'A');
+                        return (
+                            <div key={ex.id} className={`flex items-center text-sm p-2 rounded border border-black/5 ${bgClass}`}>
+                                <span className="font-bold w-6 text-gray-600">{ex.supersetId}.</span>
+                                <span className="flex-1 font-medium text-gray-800">{ex.name || 'Unknown Exercise'}</span>
+                                <span className="w-16 text-right text-gray-600 font-mono text-xs">{ex.sets}x{ex.reps}</span>
+                                <span className="w-12 text-right font-bold text-gray-700 text-xs">{ex.weight}kg</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+
+            const RunningSummary = ({ structure }) => (
+                <div className="space-y-1 text-sm bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    {structure.map(comp => {
+                        const formatStep = (s) => {
+                            const dur = s.durationType === 'Distance' ? `${s.durationValue}km` : `${s.durationValue}`;
+                            const int = s.intensityType === 'Pace' ? `@${s.intensityValue}` : s.intensityType === 'Heart Rate' ? `HR ${s.intensityValue}` : '';
+                            return `${dur} ${int}`;
+                        };
+
+                        if (comp.isRepeat) {
+                            // Assumes repeats usually have a run part and a recovery part
+                            const runPart = comp.steps.find(s => s.type === 'Run') || comp.steps[0];
+                            const recPart = comp.steps.find(s => s.type === 'Recovery' || s.type === 'Rest');
+                            const recStr = recPart ? `'${formatStep(recPart)}` : '';
+                            
+                            return (
+                                <div key={comp.id} className="font-medium text-gray-800 py-1">
+                                    <span className="font-bold text-blue-600">{comp.repeats}x</span> {formatStep(runPart)} <span className="text-gray-500 text-xs">{recStr}</span>
+                                </div>
+                            );
+                        } else {
+                            const prefix = (comp.type === 'W-up' || comp.type === 'C-down') ? <span className="font-bold text-gray-500 mr-1">{comp.type}:</span> : null;
+                            if (comp.type === 'Recovery' || comp.type === 'Rest') return null; // Don't show standalone recovery in summary unless specific
+                            return (
+                                <div key={comp.id} className="py-1 flex items-center">
+                                    {prefix} <span>{formatStep(comp)}</span>
+                                </div>
+                            );
+                        }
+                    })}
+                </div>
+            );
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+                    <datalist id="exercise-list">{dbList.map((ex, i) => <option key={i} value={ex} />)}</datalist>
+                    <datalist id="pace-presets">{runningPresets.map((p, i) => <option key={i} value={p}>Zone {i+1}</option>)}</datalist>
+                    <datalist id="hr-presets">{hrPresets.map((h, i) => <option key={i} value={h}>Zone {i+1} HR</option>)}</datalist>
+                    
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="bg-slate-900 p-4 flex justify-between items-center shrink-0">
+                            <h2 className="text-white font-semibold text-lg">{title}</h2>
+                            <div className="flex items-center gap-2">
+                                {!isEditing && (editedSession.type === 'Gym' || editedSession.type === 'Running') && (
+                                    <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition mr-2 shadow-sm">
+                                        <Icons.Edit size={16} /> Open Editor
+                                    </button>
+                                )}
+                                {onCopy && editedSession.type && <button onClick={() => onCopy(editedSession)} className="text-gray-300 hover:text-white"><Icons.Copy size={20} /></button>}
+                                {canPaste && <button onClick={handlePasteAction} className="text-gray-300 hover:text-white"><Icons.Clipboard size={20} /></button>}
+                                <button onClick={onClose} className="text-gray-300 hover:text-white ml-2"><Icons.X size={24} /></button>
+                            </div>
+                        </div>
+                        <div className="p-6 space-y-6 overflow-y-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label className="block text-sm font-medium text-gray-700 mb-1">Sport</label><select value={editedSession.type || ''} onChange={handleTypeChange} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none"><option value="">Select Sport...</option>{TRAINING_TYPES.map(t => <option key={t} value={t || ''}>{t}</option>)}</select></div>
+                                <div><label className="block text-sm font-medium text-gray-700 mb-1">Time</label><div className="relative"><input type="time" value={editedSession.time || ''} onChange={(e) => setEditedSession({...editedSession, time: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 pl-9 outline-none" /><Icons.Clock className="absolute left-3 top-3 text-gray-400 w-4 h-4" /></div></div>
+                            </div>
+                            
+                            {editedSession.type && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                        <input list="subtype-options" type="text" value={editedSession.subType} onChange={(e) => setEditedSession({...editedSession, subType: e.target.value})} placeholder="Select or type..." className="w-full border border-gray-300 rounded-lg p-2.5 outline-none" />
+                                        <datalist id="subtype-options">{availableSubTypes.map(st => <option key={st} value={st} />)}</datalist>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- CONTENT AREA (TOGGLES BETWEEN SUMMARY AND EDITOR) --- */}
+                            
+                            {/* GYM CONTENT */}
+                            {isGym && (
+                                !isEditing ? (
+                                    <GymSummary exercises={editedSession.exercises} />
+                                ) : (
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                        <div className="flex justify-between items-center mb-3"><h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider">Exercises</h3><button onClick={() => addExercise()} className="text-xs flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition"><Icons.Plus size={14} /> Add</button></div>
+                                        <div className="space-y-2">
+                                            {editedSession.exercises?.length > 0 && (<div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 px-2"><div className="col-span-1"></div><div className="col-span-1 text-center">#</div><div className="col-span-3">Exercise</div><div className="col-span-2">Kg</div><div className="col-span-2 text-center">Sets</div><div className="col-span-1 text-center">Reps</div><div className="col-span-1 text-center">RPE</div><div className="col-span-1"></div></div>)}
+                                            {editedSession.exercises?.map((ex, idx) => {
+                                                const bgClass = getSupersetColor(ex.supersetId || 'A');
+                                                return (
+                                                <div key={ex.id} className={`grid grid-cols-12 gap-2 items-center p-2 rounded border shadow-sm ${bgClass}`}>
+                                                    <div className="col-span-1 flex flex-col items-center justify-center gap-0.5"><button onClick={() => moveExercise(idx, 'up')} disabled={idx === 0} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><Icons.ChevronUp size={14} /></button><button onClick={() => moveExercise(idx, 'down')} disabled={idx === (editedSession.exercises?.length || 0) - 1} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><Icons.ChevronDown size={14} /></button></div>
+                                                    
+                                                    <div className="col-span-1 flex justify-center">
+                                                        <select value={ex.supersetId || 'A'} onChange={(e) => updateSupersetGroup(ex.id, e.target.value)} className="text-sm font-bold text-slate-700 bg-white/50 border border-black/10 rounded px-1 py-1 outline-none cursor-pointer hover:bg-white">
+                                                            {SUPERSET_LETTERS.map(l => (<option key={l} value={l}>{l}.</option>))}
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="col-span-3"><input list="exercise-list" type="text" placeholder="Name" value={ex.name} onChange={(e) => updateExercise(ex.id, 'name', e.target.value)} className="w-full text-sm border-gray-400/30 border-b bg-transparent focus:border-blue-500 outline-none pb-1" /></div>
+                                                    <div className="col-span-2"><input type="text" placeholder="kg" value={ex.weight || ''} onChange={(e) => updateExercise(ex.id, 'weight', e.target.value)} className="w-full text-sm border-gray-400/30 border-b bg-transparent focus:border-blue-500 outline-none pb-1"/></div>
+                                                    <div className="col-span-2"><select value={ex.sets} onChange={(e) => updateExercise(ex.id, 'sets', parseInt(e.target.value))} className="w-full text-sm text-center bg-transparent border-b border-gray-400/30 outline-none">{[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}</select></div>
+                                                    <div className="col-span-1"><input type="text" value={ex.reps} onChange={(e) => updateExercise(ex.id, 'reps', e.target.value)} className="w-full text-sm text-center border-gray-400/30 border-b bg-transparent focus:border-blue-500 outline-none pb-1" placeholder="10"/></div>
+                                                    <div className="col-span-1"><select value={ex.rpe} onChange={(e) => updateExercise(ex.id, 'rpe', e.target.value)} className="w-full text-sm text-center font-bold text-blue-600 bg-transparent border-b border-gray-400/30 outline-none"><option value="-">-</option>{[...Array(10)].map((_, i) => <option key={i+1} value={(i+1).toString()}>{i+1}</option>)}</select></div>
+                                                    <div className="col-span-1 flex justify-end"><button onClick={() => removeExercise(ex.id)} className="text-gray-400 hover:text-red-500"><Icons.Minus size={16} /></button></div>
+                                                </div>
+                                            )})}
+                                        </div>
+                                    </div>
+                                )
+                            )}
+
+                            {/* RUNNING CONTENT */}
+                            {isRunning && (
+                                !isEditing ? (
+                                    <RunningSummary structure={editedSession.workoutStructure} />
+                                ) : (
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <div className="flex items-center gap-4"><h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider">Workout Builder</h3><div className="flex gap-3 text-xs text-gray-500 font-medium"><span className="flex items-center gap-1"><Icons.Ruler size={12}/> {totals.totalDist} km</span><span className="flex items-center gap-1"><Icons.Timer size={12}/> ~{totals.totalTime} min</span></div></div>
+                                            <div className="flex gap-2"><button onClick={addRepeatBlock} className="text-xs flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200 transition"><Icons.Repeat size={14} /> Add Repeats</button><button onClick={addRunStep} className="text-xs flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 transition"><Icons.Plus size={14} /> Add Step</button></div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {editedSession.workoutStructure?.map((comp, idx) => (
+                                                comp.isRepeat ? (
+                                                    <div key={comp.id} className="border-2 border-purple-100 rounded-lg p-3 bg-white">
+                                                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-purple-50">
+                                                            <div className="flex flex-col items-center justify-center gap-0.5"><button onClick={() => moveRunComponent(comp.id, 'up')} disabled={idx === 0} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><Icons.ChevronUp size={12} /></button><button onClick={() => moveRunComponent(comp.id, 'down')} disabled={idx === (editedSession.workoutStructure?.length || 0) - 1} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><Icons.ChevronDown size={12} /></button></div>
+                                                            <Icons.Repeat size={14} className="text-purple-500" /><span className="text-xs font-bold text-purple-700">Repeat</span><select value={comp.repeats} onChange={(e) => updateRunComponent(comp.id, 'repeats', parseInt(e.target.value))} className="bg-purple-50 text-xs font-bold rounded px-1 py-0.5 border-none outline-none">{[...Array(20)].map((_, i) => <option key={i+1} value={i+1}>{i+1}x</option>)}</select><div className="flex-1"></div><button onClick={() => addStepToBlock(comp.id)} className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"><Icons.Plus size={10}/> Sub-step</button><button onClick={() => removeRunComponent(comp.id)} className="text-gray-400 hover:text-red-500"><Icons.Trash2 size={14} /></button>
+                                                        </div>
+                                                        <div className="pl-4 border-l-2 border-purple-100 space-y-2">{comp.steps.map((step, sIdx) => (
+                                                            <div key={step.id} className="grid grid-cols-12 gap-2 items-center text-xs">
+                                                                <div className="col-span-1 flex flex-col items-center justify-center gap-0.5"><button onClick={() => moveRunComponent(step.id, 'up', comp.id)} disabled={sIdx === 0} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><Icons.ChevronUp size={10} /></button><button onClick={() => moveRunComponent(step.id, 'down', comp.id)} disabled={sIdx === comp.steps.length - 1} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><Icons.ChevronDown size={10} /></button></div>
+                                                                <div className="col-span-2"><select value={step.type} onChange={(e) => updateRunComponent(step.id, 'type', e.target.value, comp.id)} className="w-full bg-gray-50 rounded px-1 py-1 border border-gray-200 outline-none">{RUNNING_STEP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                                                <div className="col-span-3 flex gap-1"><select value={step.durationType} onChange={(e) => updateRunComponent(step.id, 'durationType', e.target.value, comp.id)} className="w-1/2 bg-gray-50 rounded px-1 border border-gray-200 outline-none"><option value="Distance">Dist</option><option value="Time">Time</option></select>
+                                                                    {step.durationType === 'Distance' ? (
+                                                                        <DistanceSelector value={step.durationValue} onChange={(v) => updateRunComponent(step.id, 'durationValue', v, comp.id)} className="w-1/2 border-b border-gray-300"/>
+                                                                    ) : (
+                                                                        <TimeSelector value={step.durationValue} onChange={(v) => updateRunComponent(step.id, 'durationValue', v, comp.id)} className="w-1/2 border-b border-gray-300"/>
+                                                                    )}
+                                                                </div>
+                                                                <div className="col-span-5 flex gap-1 items-center"><select value={step.intensityType} onChange={(e) => updateRunComponent(step.id, 'intensityType', e.target.value, comp.id)} className="w-1/2 bg-gray-50 rounded px-1 border border-gray-200 outline-none"><option value="Pace">Pace</option><option value="Heart Rate">HR</option><option value="None">-</option></select>{step.intensityType === 'Pace' ? (
+                                                                    <div className="w-1/2">
+                                                                        <input list="pace-presets" type="text" value={step.intensityValue} onChange={(e) => updateRunComponent(step.id, 'intensityValue', e.target.value, comp.id)} placeholder="5:00" className="w-full border-b border-gray-300 outline-none text-center"/>
+                                                                    </div>
+                                                                ) : (<input list="hr-presets" type="text" value={step.intensityValue} onChange={(e) => updateRunComponent(step.id, 'intensityValue', e.target.value, comp.id)} placeholder="bpm" className="w-1/2 border-b border-gray-300 outline-none text-center"/>)}</div>
+                                                                <div className="col-span-1 text-right"><button onClick={() => removeRunComponent(step.id, comp.id)} className="text-gray-300 hover:text-red-500"><Icons.Minus size={12} /></button></div>
+                                                            </div>
+                                                        ))}</div>
+                                                    </div>
+                                                ) : (
+                                                    <div key={comp.id} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-gray-200 text-xs">
+                                                        <div className="col-span-1 flex flex-col items-center justify-center gap-0.5"><button onClick={() => moveRunComponent(comp.id, 'up')} disabled={idx === 0} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><Icons.ChevronUp size={12} /></button><button onClick={() => moveRunComponent(comp.id, 'down')} disabled={idx === (editedSession.workoutStructure?.length || 0) - 1} className="text-gray-400 hover:text-blue-600 disabled:opacity-30"><Icons.ChevronDown size={12} /></button></div>
+                                                        <div className="col-span-2"><select value={comp.type} onChange={(e) => updateRunComponent(comp.id, 'type', e.target.value)} className="w-full bg-gray-50 rounded px-1 py-1 border border-gray-200 outline-none font-medium">{RUNNING_STEP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                                        <div className="col-span-3 flex gap-1"><select value={comp.durationType} onChange={(e) => updateRunComponent(comp.id, 'durationType', e.target.value)} className="w-1/2 bg-gray-50 rounded px-1 border border-gray-200 outline-none"><option value="Distance">Dist</option><option value="Time">Time</option></select>
+                                                            {comp.durationType === 'Distance' ? (
+                                                                <DistanceSelector value={comp.durationValue} onChange={(v) => updateRunComponent(comp.id, 'durationValue', v)} className="w-1/2 border-b border-gray-300"/>
+                                                            ) : (
+                                                                <TimeSelector value={comp.durationValue} onChange={(v) => updateRunComponent(comp.id, 'durationValue', v)} className="w-1/2 border-b border-gray-300"/>
+                                                            )}
+                                                        </div>
+                                                        <div className="col-span-5 flex gap-1 items-center"><select value={comp.intensityType} onChange={(e) => updateRunComponent(comp.id, 'intensityType', e.target.value)} className="w-1/2 bg-gray-50 rounded px-1 border border-gray-200 outline-none"><option value="Pace">Pace</option><option value="Heart Rate">HR</option><option value="None">-</option></select>{comp.intensityType === 'Pace' ? (
+                                                            <div className="w-1/2">
+                                                                <input list="pace-presets" type="text" value={comp.intensityValue} onChange={(e) => updateRunComponent(comp.id, 'intensityValue', e.target.value)} placeholder="5:00" className="w-full border-b border-gray-300 outline-none text-center"/>
+                                                            </div>
+                                                        ) : (<input list="hr-presets" type="text" value={comp.intensityValue} onChange={(e) => updateRunComponent(comp.id, 'intensityValue', e.target.value)} placeholder="bpm" className="w-1/2 border-b border-gray-300 outline-none text-center font-mono"/>)}</div>
+                                                        <div className="col-span-1 text-right"><button onClick={() => removeRunComponent(comp.id)} className="text-gray-300 hover:text-red-500"><Icons.Trash2 size={14} /></button></div>
+                                                    </div>
+                                                )
+                                            ))}
+                                        </div>
+                                    </div>
+                                )
+                            )}
+
+                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Notes</label><textarea rows={isGym ? 2 : 4} value={editedSession.notes} onChange={(e) => setEditedSession({ ...editedSession, notes: e.target.value })} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none resize-none" placeholder="Comments..." /></div>
+                            {!isGym && (<div><label className="block text-sm font-medium text-gray-700 mb-1">RPE (1-10)</label><div className="flex gap-2 items-center"><input type="range" min="0" max="10" step="1" value={editedSession.rpe || 0} onChange={(e) => setEditedSession({...editedSession, rpe: parseInt(e.target.value)})} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" /><span className={`font-bold w-8 text-center ${(editedSession.rpe || 0) > 8 ? 'text-red-600' : (editedSession.rpe || 0) > 5 ? 'text-orange-500' : 'text-green-600'}`}>{editedSession.rpe || '-'}</span></div></div>)}
+                        </div>
+                        <div className="bg-gray-50 p-4 flex justify-between shrink-0"><button onClick={handleClear} className="flex items-center text-red-500 hover:text-red-700 font-medium px-4 py-2"><Icons.Trash2 size={18} className="mr-2" /> Clear</button><div className="flex gap-3"><button onClick={onClose} className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancel</button><button onClick={() => onSave(editedSession)} className="flex items-center bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md"><Icons.Save size={18} className="mr-2" /> Save</button></div></div>
+                    </div>
+                </div>
+            );
+        }
+
+        const SessionSlot = ({ session, label, onClick, icon, onDragStart, onDrop, onDragOver }) => {
+            const isEmpty = !session.type;
+            const getColorClass = (type) => {
+                switch (type) {
+                    case 'Gym': return 'bg-indigo-50 border-indigo-200 hover:border-indigo-300';
+                    case 'Running': return 'bg-orange-50 border-orange-200 hover:border-orange-300';
+                    case 'Cycling': return 'bg-cyan-50 border-cyan-200 hover:border-cyan-300';
+                    case 'Football': return 'bg-green-50 border-green-200 hover:border-green-300';
+                    case 'Rest': return 'bg-purple-50 border-purple-200 hover:border-purple-300';
+                    default: return 'bg-white border-gray-200 border-dashed hover:border-gray-400';
+                }
+            };
+            const structureText = session.exercises?.length > 0 ? `${session.exercises.length} exercises` : null;
+            const stats = calculateWorkoutStats(session);
+
+            const renderRunningSummary = () => {
+                if (!session.workoutStructure) return null;
+                const validSteps = session.workoutStructure.filter(comp => comp.type !== 'W-up' && comp.type !== 'C-down');
+                
+                if (validSteps.length === 0) return null;
+
+                return (
+                    <div className="mt-1 space-y-0.5">
+                        {validSteps.map((comp, i) => {
+                            const formatStep = (s) => {
+                                 const dur = s.durationType === 'Distance' ? `${s.durationValue}km` : `${s.durationValue}`;
+                                 const int = s.intensityType === 'Pace' ? `@${s.intensityValue}` : s.intensityType === 'Heart Rate' ? `HR ${s.intensityValue}` : '';
+                                 return `${dur} ${int}`;
+                            };
+
+                            if (comp.isRepeat) {
+                                const runPart = comp.steps.find(s => s.type === 'Run') || comp.steps[0];
+                                const recPart = comp.steps.find(s => s.type === 'Recovery' || s.type === 'Rest');
+                                const recStr = recPart ? `'${recPart.durationValue}` : ''; 
+                                return (
+                                    <div key={comp.id || i} className="text-[10px] leading-3 text-gray-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                                        <span className="font-bold text-blue-600">{comp.repeats}x</span> {formatStep(runPart)} <span className="text-gray-400 text-[9px]">{recStr}</span>
+                                    </div>
+                                );
+                            } else {
+                                if (comp.type === 'Recovery' || comp.type === 'Rest') return null;
+                                return (
+                                    <div key={comp.id || i} className="text-[10px] leading-3 text-gray-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                                        {formatStep(comp)}
+                                    </div>
+                                );
+                            }
+                        })}
+                    </div>
+                )
+            };
+
+            return (
+                <div onClick={onClick} draggable={!isEmpty} onDragStart={onDragStart} onDrop={onDrop} onDragOver={onDragOver} className={`group cursor-pointer rounded-lg p-3 border transition-all duration-200 h-full flex flex-col gap-1 ${getColorClass(session.type)} ${isEmpty ? 'opacity-60 hover:opacity-100' : 'shadow-sm hover:shadow-md'}`}>
+                    <div className="flex justify-between items-center py-1"><div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider"><span className="shrink-0">{icon}</span><span>{label}</span></div><div className="flex items-center gap-2 shrink-0">{session.time && (<span className="text-[11px] font-semibold text-gray-600">{session.time}</span>)}{!session.type?.includes('Gym') && session.rpe && (<span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${session.rpe > 8 ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-700'}`}>RPE {session.rpe}</span>)}</div></div>
+                    <div className="flex-1 flex flex-col justify-start">
+                        {isEmpty ? (<div className="py-4 flex items-center justify-center"><span className="text-2xl text-gray-300 group-hover:text-gray-400 font-light">+</span></div>) : (<><p className="font-bold text-gray-800 text-sm break-words">{session.type}</p><p className="text-xs text-gray-600 break-words">{session.subType || 'General'} {session.periodization && <span className="text-gray-400"> | {session.periodization}</span>}</p>
+                        {stats.totalDist > 0 && (
+                            <div className="mt-1 flex items-center gap-2">
+                                <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-1.5 rounded">{stats.totalDist} km</span>
+                                <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 rounded">{stats.totalTime} min</span>
+                            </div>
+                        )}
+                        
+                        {session.type === 'Running' ? renderRunningSummary() : (structureText && !stats.totalDist && <p className="text-[10px] text-blue-600 mt-1 font-medium">{structureText}</p>)}
+                        
+                        {session.notes && (<p className={`text-xs text-gray-500 mt-2 border-t border-black/5 pt-1 italic whitespace-pre-wrap break-words line-clamp-2`}>"{session.notes}"</p>)}</>)}
+                    </div>
+                </div>
+            );
+        };
+
+        const CNSControl = ({ level, onChange }) => (
+            <div className="bg-slate-50 border-t border-gray-100 p-2 mt-auto"><div className="flex items-center gap-2 mb-2 px-1"><div className="p-0.5 bg-slate-100 rounded"><Icons.Zap size={14} className="text-slate-500" /></div><span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">CNS Fatigue</span></div><div className="flex gap-1"><button onClick={() => onChange(level === 'Low' ? null : 'Low')} className={`flex-1 py-1 text-[10px] font-bold rounded transition-colors border ${level === 'Low' ? 'bg-green-100 text-green-700 border-green-200 ring-1 ring-green-400' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}>Low</button><button onClick={() => onChange(level === 'Medium' ? null : 'Medium')} className={`flex-1 py-1 text-[10px] font-bold rounded transition-colors border ${level === 'Medium' ? 'bg-orange-100 text-orange-700 border-orange-200 ring-1 ring-orange-400' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}>Med</button><button onClick={() => onChange(level === 'High' ? null : 'High')} className={`flex-1 py-1 text-[10px] font-bold rounded transition-colors border ${level === 'High' ? 'bg-red-100 text-red-700 border-red-200 ring-1 ring-red-400' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}>High</button></div></div>
+        );
+
+        const DayCard = ({ day, onEditTraining, onUpdateDay, index, onDragStart, onDrop, onDragOver }) => {
+            const isPast = new Date(day.dateKey) < new Date(toISODate(new Date()));
+            const isToday = day.dateKey === toISODate(new Date());
+            
+            // Status colors
+            const getStatusColor = (s) => {
+                if (s === 'completed') return 'bg-green-50 border-green-200';
+                if (s === 'missed') return 'bg-red-50 border-red-200';
+                if (isToday) return 'bg-blue-50 border-blue-200';
+                return 'bg-slate-50 border-gray-100';
+            };
+
+            const toggleStatus = () => {
+                const next = day.status === 'neutral' ? 'completed' : day.status === 'completed' ? 'missed' : 'neutral';
+                onUpdateDay(index, { ...day, status: next });
+            };
+
+            return (
+                <div className={`rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-full hover:shadow-md transition-shadow ${isPast && day.status === 'neutral' ? 'bg-gray-50 opacity-75' : 'bg-white'}`}>
+                    <div className={`p-2 border-b flex justify-between items-center cursor-pointer transition-colors ${getStatusColor(day.status || 'neutral')}`} onClick={toggleStatus}>
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm"><span className="capitalize">{day.dayName.substring(0,3)}</span><span className="text-slate-500 font-normal">{day.date}</span></h3>
+                        <div className="text-slate-400 hover:text-slate-600">
+                             {day.status === 'completed' ? <Icons.CheckCircle className="text-green-600" size={16}/> : day.status === 'missed' ? <Icons.XCircle className="text-red-500" size={16}/> : <Icons.Circle size={16}/>}
+                        </div>
+                    </div>
+                    <div className="p-2 flex flex-col gap-2 flex-1">
+                        <div className="flex-1"><SessionSlot session={day.training1} label="Morning" onClick={() => onEditTraining(index, 'training1')} icon={<Icons.Sun className="w-4 h-4" />} onDragStart={(e) => onDragStart(e, index, 'training1')} onDrop={(e) => onDrop(e, index, 'training1')} onDragOver={onDragOver} /></div>
+                        <div className="flex-1"><SessionSlot session={day.training2} label="Evening" onClick={() => onEditTraining(index, 'training2')} icon={<Icons.Moon className="w-4 h-4" />} onDragStart={(e) => onDragStart(e, index, 'training2')} onDrop={(e) => onDrop(e, index, 'training2')} onDragOver={onDragOver} /></div>
+                    </div>
+                    <CNSControl level={day.cnsFatigue} onChange={(l) => onUpdateDay(index, { ...day, cnsFatigue: l })} />
+                    <div className="px-2 pb-2">
+                        <textarea placeholder="Daily notes..." value={day.dailyNotes || ''} onChange={(e) => onUpdateDay(index, {...day, dailyNotes: e.target.value})} className="w-full text-xs bg-gray-50 border border-gray-200 rounded p-1.5 outline-none resize-none h-8 focus:h-16 transition-all" />
+                    </div>
+                </div>
+            );
+        };
+
+        const CardioInputTable = ({ type, data, onChange }) => {
+            const metricLabel = type === 'running' ? 'Pace (min:sec)' : 'Wattage (W)';
+            const update = (zone, field, val) => { onChange({ ...data, [zone]: { ...data[zone], [field]: val } }); };
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"><div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200 text-sm font-bold text-gray-700"><div className="p-4">Zone</div><div className="p-4">{metricLabel}</div><div className="p-4">Heart Rate (bpm)</div></div>{['lt1', 'lt2', 'vo2'].map((z) => (<div key={z} className="grid grid-cols-3 border-b border-gray-100 last:border-0 items-center"><div className="p-4 font-medium text-gray-800 text-sm uppercase">{z}</div><div className="p-2">{type === 'running' ? (<TimeSelector value={data[z].paceOrPower} onChange={(v) => update(z, 'paceOrPower', v)} />) : (<input type="text" value={data[z].paceOrPower} onChange={(e) => update(z, 'paceOrPower', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded p-2 text-sm outline-none" placeholder="200" />)}</div><div className="p-2"><input type="text" value={data[z].hr} onChange={(e) => update(z, 'hr', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded p-2 text-sm outline-none" placeholder="145" /></div></div>))}</div>
+            );
+        };
+
+        const GymInputList = ({ prs, onChange }) => {
+            const addRow = () => onChange([...prs, { id: Date.now().toString(), name: '', weight: '' }]);
+            const updateRow = (id, field, val) => onChange(prs.map(p => p.id === id ? { ...p, [field]: val } : p));
+            const deleteRow = (id) => onChange(prs.filter(p => p.id !== id));
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"><div className="grid grid-cols-12 bg-gray-50 border-b border-gray-200 text-sm font-bold text-gray-700 p-4"><div className="col-span-7">Exercise</div><div className="col-span-4">1RM (kg)</div><div className="col-span-1"></div></div>{prs.map(pr => (<div key={pr.id} className="grid grid-cols-12 border-b border-gray-100 last:border-0 p-2 items-center"><div className="col-span-7 pr-2"><input type="text" value={pr.name} onChange={(e) => updateRow(pr.id, 'name', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded p-2 text-sm outline-none font-medium" placeholder="Name..." /></div><div className="col-span-4 pr-2"><input type="text" value={pr.weight} onChange={(e) => updateRow(pr.id, 'weight', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded p-2 text-sm outline-none" placeholder="kg" /></div><div className="col-span-1 flex justify-center"><button onClick={() => deleteRow(pr.id)} className="text-gray-400 hover:text-red-500"><Icons.Trash2 size={16} /></button></div></div>))}<div className="p-3 bg-gray-50 border-t border-gray-200"><button onClick={addRow} className="flex items-center gap-2 text-blue-600 text-sm font-bold hover:text-blue-800"><Icons.Plus size={16} /> Add</button></div></div>
+            );
+        };
+
+        const ExerciseDbManager = ({ list, onChange }) => {
+            const [newEx, setNewEx] = useState('');
+            const [filter, setFilter] = useState('');
+            const safeList = Array.isArray(list) ? list : [];
+            const add = () => { if(newEx && !safeList.includes(newEx)) { onChange([...safeList, newEx].sort()); setNewEx(''); } };
+            const remove = (name) => onChange(safeList.filter(l => l !== name));
+            const filteredList = safeList.filter(l => l.toLowerCase().includes(filter.toLowerCase()));
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[500px]"><div className="p-4 bg-gray-50 border-b border-gray-200 space-y-3"><div className="flex gap-2"><input type="text" value={newEx} onChange={(e) => setNewEx(e.target.value)} placeholder="New Exercise..." className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none" onKeyDown={(e) => e.key === 'Enter' && add()} /><button onClick={add} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Add</button></div><div className="relative"><Icons.Search size={16} className="absolute left-3 top-3 text-gray-400" /><input type="text" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search DB..." className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm outline-none bg-white" /></div></div><div className="overflow-y-auto flex-1 p-2">{filteredList.map(item => (<div key={item} className="flex justify-between items-center p-2 hover:bg-gray-50 border-b border-gray-100 last:border-0"><span className="text-sm font-medium text-gray-700">{item}</span><button onClick={() => remove(item)} className="text-gray-400 hover:text-red-500"><Icons.Trash2 size={14}/></button></div>))}</div></div>
+            );
+        };
+
+        const InputsScreen = ({ setCurrentScreen }) => (
+            <div className="max-w-4xl mx-auto px-4 py-8 animate-fade-in"><div className="flex items-center gap-4 mb-6"><button onClick={() => setCurrentScreen('planner')} className="p-2 hover:bg-gray-200 rounded-full transition"><Icons.ArrowLeft /></button><h2 className="text-2xl font-bold text-gray-800">Inputs</h2></div><div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"><button onClick={() => setCurrentScreen('inputs-running')} className="bg-white p-6 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all flex flex-col items-center gap-4 group"><div className="p-4 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-colors"><Icons.Activity size={24} className="text-orange-600" /></div><h3 className="text-lg font-bold text-gray-800">Running</h3></button><button onClick={() => setCurrentScreen('inputs-cycling')} className="bg-white p-6 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all flex flex-col items-center gap-4 group"><div className="p-4 bg-cyan-100 rounded-full group-hover:bg-cyan-200 transition-colors"><Icons.Bike size={24} className="text-cyan-600" /></div><h3 className="text-lg font-bold text-gray-800">Cycling</h3></button><button onClick={() => setCurrentScreen('inputs-gym')} className="bg-white p-6 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all flex flex-col items-center gap-4 group"><div className="p-4 bg-indigo-100 rounded-full group-hover:bg-indigo-200 transition-colors"><Icons.Dumbbell size={24} className="text-indigo-600" /></div><h3 className="text-lg font-bold text-gray-800">Gym PRs</h3></button><button onClick={() => setCurrentScreen('inputs-db')} className="bg-white p-6 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all flex flex-col items-center gap-4 group"><div className="p-4 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors"><Icons.Database size={24} className="text-emerald-600" /></div><h3 className="text-lg font-bold text-gray-800">Exercise DB</h3></button></div></div>
+        );
+
+        // --- MONTHLY VIEW (Compact grid, month filtering, monthly stats) ---
+        // Helper for monthly badge colors (reuse weekly palette)
+        const getTypeBadge = (type) => {
+            switch (type) {
+                case 'Gym': return 'bg-indigo-100 text-indigo-700';
+                case 'Running': return 'bg-orange-100 text-orange-700';
+                case 'Cycling': return 'bg-cyan-100 text-cyan-700';
+                case 'Football': return 'bg-green-100 text-green-700';
+                case 'Rest': return 'bg-purple-100 text-purple-700';
+                default: return 'bg-white text-gray-700 border border-gray-200';
+            }
+        };
+        // Small solid color dot for totals panel (use same palette)
+        const getTypeDot = (type) => {
+            switch (type) {
+                case 'Gym': return 'bg-indigo-500';
+                case 'Running': return 'bg-orange-500';
+                case 'Cycling': return 'bg-cyan-500';
+                case 'Football': return 'bg-green-500';
+                case 'Rest': return 'bg-purple-500';
+                default: return 'bg-gray-300';
+            }
+        };
+
+        // Format monthly label: prefer subType and append a short suffix for clarity
+        const formatMonthlyLabel = (s) => {
+            if (!s || !s.type) return '';
+            const sub = (s.subType || '').trim();
+            if (sub) {
+                const lc = sub.toLowerCase();
+                const needsRun = s.type === 'Running' && !lc.includes('run');
+                const needsRide = s.type === 'Cycling' && !lc.includes('ride');
+                const suffix = needsRun ? ' run' : needsRide ? ' ride' : '';
+                return `${sub}${suffix}`;
+            }
+            return s.type;
+        };
+
+        const MonthlyDayCard = ({ dateKey, data, isInMonth, onEditMorning, onEditEvening }) => {
+            const d = new Date(dateKey);
+            const isToday = dateKey === toISODate(new Date());
+            const status = data.status || 'neutral';
+            const statusStripe = isInMonth ? (status === 'completed' ? 'bg-green-500' : status === 'missed' ? 'bg-red-500' : (isToday ? 'bg-blue-500' : 'bg-transparent')) : 'bg-transparent';
+            const cardBase = isInMonth ? 'bg-white border border-gray-200' : 'bg-gray-800';
+            const textClass = isInMonth ? 'text-gray-800' : 'text-white';
+            const subTextClass = isInMonth ? 'text-gray-500' : 'text-gray-200';
+            return (
+                <div className={`rounded-md overflow-hidden transition ${cardBase} h-36 flex flex-col` }>
+                    <div className={`${statusStripe} h-1 w-full`} />
+                    <div className="p-2 flex-1 flex flex-col justify-between">
+                        <div className="flex justify-between items-center mb-1"><div className="text-xs font-bold">{d.getDate()}</div><div className="text-[10px] text-gray-400">{d.toLocaleDateString('en-GB', { weekday: 'short' }).substring(0,3)}</div></div>
+                        <div className="flex-1 flex flex-col justify-between text-sm leading-5">
+                            <div className="flex items-start gap-2">
+                                {data.training1?.type ? (
+                                    <button onClick={onEditMorning} title={formatMonthlyLabel(data.training1)} className={`flex-1 text-left font-bold text-xs line-clamp-2 whitespace-normal overflow-hidden px-1 py-1 rounded ${isInMonth ? getTypeBadge(data.training1.type) : 'bg-white/5 text-white'}`}>{formatMonthlyLabel(data.training1)}</button>
+                                ) : (
+                                    <button onClick={onEditMorning} className={`flex-1 text-left font-bold text-sm text-gray-300`}>+</button>
+                                )}
+                            </div>
+                            <div className="h-px bg-gray-100 my-1" />
+                            <div className="flex items-start gap-2">
+                                {data.training2?.type ? (
+                                    <button onClick={onEditEvening} title={formatMonthlyLabel(data.training2)} className={`flex-1 text-left font-bold text-xs line-clamp-2 whitespace-normal overflow-hidden px-1 py-1 rounded ${isInMonth ? getTypeBadge(data.training2.type) : 'bg-white/5 text-white'}`}>{formatMonthlyLabel(data.training2)}</button>
+                                ) : (
+                                    <button onClick={onEditEvening} className={`flex-1 text-left font-bold text-sm text-gray-300`}>+</button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const MonthlyView = ({ selectedMonth, workoutDB, onEditTraining, onChangeMonth }) => {
+            const firstOfMonth = new Date(selectedMonth + '-01');
+            const lastOfMonth = new Date(firstOfMonth.getFullYear(), firstOfMonth.getMonth() + 1, 0);
+            const gridStart = getMondayDate(firstOfMonth);
+            let weekStart = new Date(gridStart);
+            const weeks = [];
+            // build weeks that include whole month (start on Monday)
+            while (weekStart <= lastOfMonth) {
+                const days = [];
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(weekStart);
+                    d.setDate(weekStart.getDate() + i);
+                    const dateKey = toISODate(d);
+                    const dayData = workoutDB[dateKey] || createEmptyDay(d);
+                    days.push({ dateKey, data: dayData, isInMonth: d.getMonth() === firstOfMonth.getMonth() });
+                }
+                weeks.push(days);
+                weekStart.setDate(weekStart.getDate() + 7);
+            }
+
+            // Monthly totals (exclude days not in this month)
+            const totalsPerSport = {};
+            let runningKm = 0, runningTime = 0, cyclingKm = 0, cyclingTime = 0;
+            const breakdowns = {}; // per-sport subType counts
+            
+
+            weeks.flat().forEach(({ dateKey, data, isInMonth }) => {
+                if (!isInMonth) return;
+                ['training1', 'training2'].forEach(k => {
+                    const s = data[k];
+                    if (!s || !s.type) return;
+                    totalsPerSport[s.type] = (totalsPerSport[s.type] || 0) + 1;
+
+                    // breakdown per sport by subType
+                    const subKey = s.subType || 'Other';
+                    breakdowns[s.type] = breakdowns[s.type] || {};
+                    breakdowns[s.type][subKey] = (breakdowns[s.type][subKey] || 0) + 1;
+
+                    if (s.type === 'Running') {
+                        const st = calculateWorkoutStats(s);
+                        runningKm += parseFloat(st.totalDist) || 0;
+                        runningTime += st.totalTime || 0;
+                    }
+                    if (s.type === 'Cycling') {
+                        const st = calculateWorkoutStats(s);
+                        cyclingKm += parseFloat(st.totalDist) || 0;
+                        cyclingTime += st.totalTime || 0;
+                    }
+                });
+            });
+
+            return (
+                <main className="max-w-[1100px] mx-auto px-4 py-8 animate-fade-in">
+                    <div className="mb-4 flex items-center justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold">{firstOfMonth.toLocaleString('default', { month: 'long' })} {firstOfMonth.getFullYear()}</h2>
+                            <p className="text-sm text-gray-500">Monthly summary</p>
+                        </div>
+                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <div className="mt-1 space-y-1">
+                                {Object.keys(totalsPerSport).length === 0 ? (<div className="text-sm text-gray-500">No sessions</div>) : (Object.entries(totalsPerSport).map(([k,v]) => {
+                                    const breakdown = breakdowns[k] || {};
+                                    const breakdownStr = Object.entries(breakdown).map(([sub,c]) => `${c}x ${sub}`).join(', ');
+                                    return (
+                                        <div key={k} className="text-sm flex items-center gap-2">
+                                            <span className={`inline-block w-3 h-3 rounded-full ${getTypeDot(k)}`} />
+                                            <span className="font-semibold ml-1">{k}</span>: {v}x
+                                            {k === 'Running' && runningKm > 0 && <span className="ml-2 text-xs">• {runningKm.toFixed(1)} km / {Math.round(runningTime)} min</span>}
+                                            {k === 'Cycling' && cyclingKm > 0 && <span className="ml-2 text-xs">• {cyclingKm.toFixed(1)} km / {Math.round(cyclingTime)} min</span>}
+                                            {breakdownStr && <span className="ml-2 text-xs text-gray-500">({breakdownStr})</span>}
+                                        </div>
+                                    )
+                                }))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-3">
+                        {weeks.map((week) => (
+                            week.map(day => (
+                                <MonthlyDayCard key={day.dateKey} dateKey={day.dateKey} data={day.data} isInMonth={day.isInMonth} onEditMorning={() => onEditTraining && onEditTraining(null, day.dateKey, 'training1')} onEditEvening={() => onEditTraining && onEditTraining(null, day.dateKey, 'training2')} />
+                            ))
+                        ))}
+                    </div>
+                </main>
+            );
+        }
+
+        function App() {
+            const [startDate, setStartDate] = useState(getDefaultStartDate());
+            const [currentScreen, setCurrentScreen] = useState('planner');
+            const [selectedMonth, setSelectedMonth] = useState(() => (new Date()).toISOString().slice(0,7)); // YYYY-MM
+            const fileInputRef = useRef(null);
+            const [clipboard, setClipboard] = useState(null);
+            const [dragSource, setDragSource] = useState(null);
+            
+            const [workoutDB, setWorkoutDB] = useState(() => {
+                const saved = localStorage.getItem('workout_db_v1');
+                if (saved) { try { return JSON.parse(saved); } catch(e) {} }
+                return {};
+            });
+            const [fitnessData, setFitnessData] = useState(() => {
+                const saved = localStorage.getItem('fitness_data_v1');
+                let data = DEFAULT_FITNESS_DATA;
+                if (saved) { 
+                    try { 
+                        const parsed = JSON.parse(saved); 
+                        data = { ...DEFAULT_FITNESS_DATA, ...parsed };
+                    } catch(e) {} 
+                }
+                return data;
+            });
+
+             // Stores week-level metadata, keyed by the start date of the week (Monday)
+            const [weekMetadata, setWeekMetadata] = useState(() => {
+                const saved = localStorage.getItem('week_metadata_v1');
+                if (saved) { try { return JSON.parse(saved); } catch(e) {} }
+                return {};
+            });
+
+            const [activeModal, setActiveModal] = useState(null);
+            const [activePeriodizationModal, setActivePeriodizationModal] = useState(null);
+
+            useEffect(() => { localStorage.setItem('workout_db_v1', JSON.stringify(workoutDB)); }, [workoutDB]);
+            useEffect(() => { localStorage.setItem('fitness_data_v1', JSON.stringify(fitnessData)); }, [fitnessData]);
+            useEffect(() => { localStorage.setItem('week_metadata_v1', JSON.stringify(weekMetadata)); }, [weekMetadata]);
+
+            const currentView = useMemo(() => {
+                const start = new Date(startDate);
+                const monday = getMondayDate(start);
+                monday.setHours(12, 0, 0, 0); 
+                const days = [];
+                // 8 Weeks = 56 Days
+                for (let i = 0; i < 56; i++) { 
+                    const current = new Date(monday);
+                    current.setDate(monday.getDate() + i);
+                    const dateKey = toISODate(current);
+                    
+                    // Force English formatting to overwrite potential legacy Dutch data in localStorage
+                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const freshDayName = dayNames[current.getDay()];
+                    const freshDateStr = current.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+                    if (workoutDB[dateKey]) {
+                        days.push({ 
+                            dateKey, 
+                            data: { 
+                                ...workoutDB[dateKey],
+                                dayName: freshDayName,
+                                date: freshDateStr
+                            } 
+                        });
+                    } else { 
+                        days.push({ dateKey, data: createEmptyDay(current) }); 
+                    }
+                }
+                return days;
+            }, [startDate, workoutDB]);
+
+            const handleEditTraining = (dayIndex, trainingKey) => { const item = currentView[dayIndex]; if (item) setActiveModal({ dateKey: item.dateKey, trainingKey }); };
+            const handleEditTrainingByDate = (_, dateKey, trainingKey) => { if (dateKey) setActiveModal({ dateKey, trainingKey }); };
+            
+            // Unified update handler for everything on the day card
+            const handleUpdateDay = (dayIndex, updatedDay) => {
+                 const item = currentView[dayIndex];
+                 if (!item) return;
+                 setWorkoutDB(prev => ({ ...prev, [item.dateKey]: updatedDay }));
+            };
+            const handleUpdateCNS = (dayIndex, level) => {
+                const item = currentView[dayIndex];
+                if(item) handleUpdateDay(dayIndex, { ...item.data, cnsFatigue: level });
+            };
+
+            const handleSaveTraining = (updatedSession) => {
+                if (!activeModal) return;
+
+                // If this is a Gym session, add any new exercise names to the exercise database (case-insensitive, no duplicates)
+                if (updatedSession.type === 'Gym' && Array.isArray(updatedSession.exercises) && updatedSession.exercises.length > 0) {
+                    setFitnessData(prev => {
+                        const current = Array.isArray(prev.exerciseDatabase) ? [...prev.exerciseDatabase] : [];
+                        let changed = false;
+                        updatedSession.exercises.forEach(ex => {
+                            const name = (ex.name || '').trim();
+                            if (!name) return;
+                            const exists = current.some(n => n.toLowerCase() === name.toLowerCase());
+                            if (!exists) { current.push(name); changed = true; }
+                        });
+                        if (!changed) return prev;
+                        return { ...prev, exerciseDatabase: current.sort((a,b) => a.localeCompare(b)) };
+                    });
+                }
+
+                setWorkoutDB(prev => {
+                    const existingDay = prev[activeModal.dateKey] || createEmptyDay(new Date(activeModal.dateKey));
+                    return { ...prev, [activeModal.dateKey]: { ...existingDay, [activeModal.trainingKey]: updatedSession } };
+                });
+                setActiveModal(null);
+            };
+
+            const handleUpdatePeriodization = (weekKey, phase) => {
+                setWeekMetadata(prev => ({
+                    ...prev,
+                    [weekKey]: { ...prev[weekKey], periodization: phase }
+                }));
+                setActivePeriodizationModal(null);
+            };
+
+            const handleDragStart = (e, dayIndex, sessionKey) => setDragSource({ dayIndex, sessionKey });
+            const handleDragOver = (e) => e.preventDefault();
+            const handleDrop = (e, targetDayIndex, targetSessionKey) => {
+                e.preventDefault();
+                if (!dragSource) return;
+                const sourceDateKey = currentView[dragSource.dayIndex].dateKey;
+                const targetDateKey = currentView[targetDayIndex].dateKey;
+                if (sourceDateKey === targetDateKey && dragSource.sessionKey === targetSessionKey) return;
+                setWorkoutDB(prev => {
+                    const newDB = { ...prev };
+                    if (!newDB[sourceDateKey]) newDB[sourceDateKey] = createEmptyDay(new Date(sourceDateKey));
+                    if (!newDB[targetDateKey]) newDB[targetDateKey] = createEmptyDay(new Date(targetDateKey));
+                    const sourceSession = newDB[sourceDateKey][dragSource.sessionKey];
+                    const targetSession = newDB[targetDateKey][targetSessionKey];
+                    newDB[sourceDateKey] = { ...newDB[sourceDateKey], [dragSource.sessionKey]: targetSession };
+                    newDB[targetDateKey] = { ...newDB[targetDateKey], [targetSessionKey]: sourceSession };
+                    return newDB;
+                });
+                setDragSource(null);
+            };
+
+            const handleCopy = (session) => { setClipboard(session); alert('Session copied!'); };
+            const handlePaste = () => clipboard;
+
+            const exportToCSV = () => {
+                const headers = ['Date', 'Day', 'Status', 'DailyNotes', 'CNS', 'Session', 'Time', 'Sport', 'Type', 'Structure', 'Notes'];
+                const rows = [];
+                currentView.forEach(({ data: day }) => {
+                    ['training1', 'training2'].forEach(key => {
+                        const s = day[key];
+                        let structure = '-';
+                        if (s.exercises && s.exercises.length) structure = s.exercises.map(e=>e.name).join(' | ');
+                        if (s.workoutStructure && s.workoutStructure.length) structure = `Run Builder: ${s.workoutStructure.length} blocks`;
+                        rows.push([day.date, day.dayName, day.status || 'neutral', `"${(day.dailyNotes||'').replace(/"/g, '""')}"`, day.cnsFatigue||'-', key, s.time||'-', s.type||'-', s.subType||'-', `"${structure}"`, `"${s.notes.replace(/"/g, '""')}"`].join(','));
+                    });
+                });
+                const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `plan_${startDate}.csv`;
+                link.click();
+            };
+
+            const handleBackup = () => {
+                const blob = new Blob([JSON.stringify({version: 3, timestamp: new Date(), workoutDB, fitnessData, weekMetadata})], { type: 'application/json' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+            };
+
+            const handleRestore = (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target?.result);
+                        if (data.workoutDB && window.confirm("Overwrite current data?")) { 
+                            setWorkoutDB(data.workoutDB); 
+                            if(data.fitnessData) setFitnessData(data.fitnessData);
+                            if(data.weekMetadata) setWeekMetadata(data.weekMetadata);
+                        }
+                    } catch(err) { alert("Invalid file"); }
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                };
+                reader.readAsText(file);
+            };
+
+            const currentSession = activeModal ? (workoutDB[activeModal.dateKey] || createEmptyDay(new Date(activeModal.dateKey)))[activeModal.trainingKey] : { id: '', type: null, subType: '', notes: '' };
+            const activeDayForModal = activeModal ? (workoutDB[activeModal.dateKey] || createEmptyDay(new Date(activeModal.dateKey))) : null;
+
+            const renderRow = (rowIndex) => {
+                const startIndex = rowIndex * 7;
+                const days = currentView.slice(startIndex, startIndex + 7);
+                if (days.length === 0) return null;
+                const weekNum = getWeekNumber(new Date(days[0].dateKey));
+                const weekStartKey = days[0].dateKey;
+                const weekPhase = weekMetadata[weekStartKey]?.periodization;
+
+                // Calculate Totals
+                let runDist = 0, runTime = 0, runCount = 0, cycleDist = 0, cycleTime = 0, gymCount = 0, footballCount = 0;
+                days.forEach(d => {
+                    [d.data.training1, d.data.training2].forEach(s => {
+                        if (!s.type) return;
+                        if (s.type === 'Gym') gymCount++;
+                        if (s.type === 'Football') footballCount++;
+                        if (s.type === 'Running') {
+                             runCount++;
+                             const stats = calculateWorkoutStats(s);
+                             runDist += parseFloat(stats.totalDist) || 0;
+                             runTime += stats.totalTime || 0;
+                        }
+                        if (s.type === 'Cycling') {
+                             const stats = calculateWorkoutStats(s);
+                             cycleDist += parseFloat(stats.totalDist) || 0;
+                             cycleTime += stats.totalTime || 0;
+                        }
+                    });
+                });
+
+                return (
+                    <div key={rowIndex} className="mb-6 last:mb-0">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="bg-slate-800 text-white px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm">Week {weekNum}</div>
+                            <div className="flex gap-4 text-[10px] md:text-xs text-gray-500 font-medium items-center">
+                                {runCount > 0 && <span className="flex items-center gap-1"><Icons.Activity size={14} className="text-orange-500"/> {runCount}x | {runDist.toFixed(1)}km</span>}
+                                {cycleDist > 0 && <span className="flex items-center gap-1"><Icons.Bike size={12} className="text-cyan-500"/> {cycleDist.toFixed(1)}km / {Math.floor(cycleTime/60)}h{cycleTime%60}m</span>}
+                                <button 
+                                    onClick={() => setActivePeriodizationModal({ weekKey: weekStartKey })}
+                                    className="flex items-center gap-1 hover:bg-gray-200 px-1.5 py-0.5 rounded transition-colors cursor-pointer group"
+                                >
+                                    <Icons.Dumbbell size={12} className="text-indigo-500"/> 
+                                    <span className={gymCount > 0 ? "text-gray-700" : "text-gray-400"}>{gymCount}x</span>
+                                    {weekPhase && <span className="text-indigo-600 font-bold border-l border-gray-300 pl-1 ml-1">{weekPhase}</span>}
+                                    {!weekPhase && <span className="opacity-0 group-hover:opacity-100 text-[9px] text-gray-400 ml-1">+Phase</span>}
+                                </button>
+                                {footballCount > 0 && <span className="flex items-center gap-1"><Icons.PlayCircle size={12} className="text-green-500"/> {footballCount}x</span>}
+                            </div>
+                            <div className="h-px bg-gray-200 flex-1"></div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">{days.map((item, idx) => (<DayCard key={item.dateKey} day={item.data} index={startIndex + idx} onEditTraining={handleEditTraining} onUpdateDay={handleUpdateDay} onUpdateCNS={handleUpdateCNS} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} />))}</div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100 pb-20 overflow-x-hidden">
+                    <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+                        <div className="max-w-[1900px] mx-auto px-4 py-4 flex flex-col xl:flex-row justify-between items-center gap-4">
+                            <div className="flex items-center gap-3 w-full xl:w-auto"><div className="bg-blue-600 p-2 rounded-lg text-white shrink-0"><Icons.FileSpreadsheet size={24} /></div><div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 w-full"><div><h1 className="text-xl font-bold text-gray-900 leading-tight">Sport Planner</h1><p className="text-sm text-gray-500">8 Week View</p></div><div className="flex gap-2"><button onClick={() => setCurrentScreen('inputs')} className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${currentScreen.startsWith('inputs') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>Inputs</button><button onClick={() => setCurrentScreen('planner')} className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${currentScreen === 'planner' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>Planner</button><button onClick={() => setCurrentScreen('monthly')} className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${currentScreen === 'monthly' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>Monthly</button></div>{currentScreen === 'planner' && <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200"><Icons.Calendar size={16} className="text-gray-500 ml-2" /><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-sm text-gray-800 font-semibold focus:ring-0 cursor-pointer outline-none"/></div>}
+                                {currentScreen === 'monthly' && (
+                                    <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200"><Icons.Calendar size={16} className="text-gray-500 ml-2" /><input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent border-none text-sm text-gray-800 font-semibold focus:ring-0 cursor-pointer outline-none"/></div>
+                                )}</div></div>
+                            {currentScreen === 'planner' && (<div className="flex gap-2 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 items-center"><input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" /><button onClick={handleBackup} className="flex items-center gap-2 px-3 py-2 text-gray-600 bg-gray-50 rounded-lg font-medium hover:bg-gray-100 transition whitespace-nowrap border border-gray-200 text-sm"><Icons.Save size={16} /><span className="hidden sm:inline">Backup</span></button><button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 text-gray-600 bg-gray-50 rounded-lg font-medium hover:bg-gray-100 transition whitespace-nowrap border border-gray-200 text-sm"><Icons.Upload size={16} /><span className="hidden sm:inline">Restore</span></button><div className="w-px h-8 bg-gray-200 mx-1"></div><button onClick={exportToCSV} className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition whitespace-nowrap"><Icons.Download size={16} /> CSV</button></div>)}
+                        </div>
+                    </header>
+                    {currentScreen === 'planner' && (<main className="max-w-[1900px] mx-auto px-4 py-8">{currentView.every(d => !d.data.training1.type && !d.data.training2.type) && <div className="mb-8 bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3"><Icons.Info className="w-5 h-5 text-blue-600 mt-0.5" /><div><h3 className="font-semibold text-blue-900">Start Planning</h3><p className="text-blue-700 text-sm">Select a date. Drag & Drop workouts to move them.</p></div></div>}<div className="space-y-4">{[...Array(8)].map((_, rowIndex) => renderRow(rowIndex))}</div></main>)}
+                    {currentScreen === 'monthly' && <MonthlyView selectedMonth={selectedMonth} workoutDB={workoutDB} onEditTraining={handleEditTrainingByDate} onChangeMonth={setSelectedMonth} />}
+                    {currentScreen === 'inputs' && <InputsScreen setCurrentScreen={setCurrentScreen} /> }
+                    {currentScreen === 'inputs-running' && <div className="max-w-4xl mx-auto px-4 py-8 animate-fade-in"><div className="flex items-center gap-4 mb-6"><button onClick={() => setCurrentScreen('inputs')} className="p-2 hover:bg-gray-200 rounded-full transition"><Icons.ArrowLeft /></button><div className="flex items-center gap-3"><div className="p-2 bg-orange-100 rounded-full"><Icons.Activity size={24} className="text-orange-600" /></div><h2 className="text-2xl font-bold text-gray-800">Running</h2></div></div><CardioInputTable type="running" data={fitnessData.running} onChange={(d) => setFitnessData({...fitnessData, running: d})} /></div>}
+                    {currentScreen === 'inputs-cycling' && <div className="max-w-4xl mx-auto px-4 py-8 animate-fade-in"><div className="flex items-center gap-4 mb-6"><button onClick={() => setCurrentScreen('inputs')} className="p-2 hover:bg-gray-200 rounded-full transition"><Icons.ArrowLeft /></button><div className="flex items-center gap-3"><div className="p-2 bg-cyan-100 rounded-full"><Icons.Bike size={24} className="text-cyan-600" /></div><h2 className="text-2xl font-bold text-gray-800">Cycling</h2></div></div><CardioInputTable type="cycling" data={fitnessData.cycling} onChange={(d) => setFitnessData({...fitnessData, cycling: d})} /></div>}
+                    {currentScreen === 'inputs-gym' && <div className="max-w-4xl mx-auto px-4 py-8 animate-fade-in"><div className="flex items-center gap-4 mb-6"><button onClick={() => setCurrentScreen('inputs')} className="p-2 hover:bg-gray-200 rounded-full transition"><Icons.ArrowLeft /></button><div className="flex items-center gap-3"><div className="p-2 bg-indigo-100 rounded-full"><Icons.Dumbbell size={24} className="text-indigo-600" /></div><h2 className="text-2xl font-bold text-gray-800">Gym PRs</h2></div></div><GymInputList prs={fitnessData.gym} onChange={(prs) => setFitnessData({...fitnessData, gym: prs})} /></div>}
+                    {currentScreen === 'inputs-db' && <div className="max-w-4xl mx-auto px-4 py-8 animate-fade-in"><div className="flex items-center gap-4 mb-6"><button onClick={() => setCurrentScreen('inputs')} className="p-2 hover:bg-gray-200 rounded-full transition"><Icons.ArrowLeft /></button><div className="flex items-center gap-3"><div className="p-2 bg-emerald-100 rounded-full"><Icons.Database size={24} className="text-emerald-600" /></div><h2 className="text-2xl font-bold text-gray-800">Exercise DB</h2></div></div><ExerciseDbManager list={fitnessData.exerciseDatabase} onChange={(l) => setFitnessData({...fitnessData, exerciseDatabase: l})} /></div>}
+                    <TrainingModal isOpen={!!activeModal} onClose={() => setActiveModal(null)} onSave={handleSaveTraining} session={currentSession} title={activeDayForModal ? `${activeDayForModal.dayName} (${activeDayForModal.date})` : ''} onCopy={handleCopy} onPaste={clipboard ? handlePaste : undefined} canPaste={!!clipboard} fitnessData={fitnessData} />
+                    
+                    <PeriodizationModal 
+                        isOpen={!!activePeriodizationModal}
+                        onClose={() => setActivePeriodizationModal(null)}
+                        onSelect={(phase) => activePeriodizationModal && handleUpdatePeriodization(activePeriodizationModal.weekKey, phase)}
+                        currentPhase={activePeriodizationModal ? weekMetadata[activePeriodizationModal.weekKey]?.periodization : null}
+                    />
+                </div>
+            );
+        }
+
+        // Error overlay helpers (show runtime errors in page when JS throws)
+        function showErrorOverlay(title, message) {
+            try {
+                let el = document.getElementById('__error_overlay');
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = '__error_overlay';
+                    el.style.position = 'fixed';
+                    el.style.left = '12px';
+                    el.style.right = '12px';
+                    el.style.top = '12px';
+                    el.style.zIndex = 99999;
+                    el.style.background = 'rgba(255,255,255,0.98)';
+                    el.style.color = '#1f2937';
+                    el.style.border = '1px solid #ef4444';
+                    el.style.padding = '12px';
+                    el.style.borderRadius = '8px';
+                    el.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+                    document.body.appendChild(el);
+                }
+                el.innerHTML = `<div style="font-weight:700;color:#b91c1c;margin-bottom:6px">${title}</div><div style="font-family:monospace;white-space:pre-wrap;font-size:12px">${message}</div>`;
+            } catch (e) {
+                console.error('Failed to show error overlay', e);
+            }
+        }
+
+        window.onerror = function(message, source, lineno, colno, err) {
+            console.error('Window error', message, err);
+            showErrorOverlay('Runtime Error', `${message} \n${source}:${lineno}:${colno}\n${err && err.stack ? err.stack : ''}`);
+        };
+        window.addEventListener('unhandledrejection', (ev) => {
+            console.error('Unhandled Rejection', ev.reason);
+            showErrorOverlay('Unhandled Promise Rejection', `${ev.reason && ev.reason.stack ? ev.reason.stack : String(ev.reason)}`);
+        });
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        try { root.render(<App />); } catch (err) { console.error(err); showErrorOverlay('Render Error', err.stack || String(err)); }
+    </script>
+</body>
+</html>
