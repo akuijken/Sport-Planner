@@ -1030,25 +1030,6 @@
             const handleCopy = (session) => { setClipboard(session); alert('Session copied!'); };
             const handlePaste = () => clipboard;
 
-            const exportToCSV = () => {
-                const headers = ['Date', 'Day', 'Status', 'DailyNotes', 'CNS', 'Session', 'Time', 'Sport', 'Type', 'Structure', 'Notes'];
-                const rows = [];
-                currentView.forEach(({ data: day }) => {
-                    ['training1', 'training2'].forEach(key => {
-                        const s = day[key];
-                        let structure = '-';
-                        if (s.exercises && s.exercises.length) structure = s.exercises.map(e=>e.name).join(' | ');
-                        if (s.workoutStructure && s.workoutStructure.length) structure = `Run Builder: ${s.workoutStructure.length} blocks`;
-                        rows.push([day.date, day.dayName, day.status || 'neutral', `"${(day.dailyNotes||'').replace(/"/g, '""')}"`, day.cnsFatigue||'-', key, s.time||'-', s.type||'-', s.subType||'-', `"${structure}"`, `"${s.notes.replace(/"/g, '""')}"`].join(','));
-                    });
-                });
-                const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `plan_${startDate}.csv`;
-                link.click();
-            };
-
             const handleBackup = () => {
                 const blob = new Blob([JSON.stringify({version: 3, timestamp: new Date(), workoutDB, fitnessData, weekMetadata})], { type: 'application/json' });
                 const link = document.createElement('a');
@@ -1140,7 +1121,7 @@
                                 {currentScreen === 'monthly' && (
                                     <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200"><Icons.Calendar size={16} className="text-gray-500 ml-2" /><input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent border-none text-sm text-gray-800 font-semibold focus:ring-0 cursor-pointer outline-none"/></div>
                                 )}</div></div>
-                            {currentScreen === 'planner' && (<div className="flex gap-2 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 items-center"><input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" /><button onClick={handleBackup} className="flex items-center gap-2 px-3 py-2 text-gray-600 bg-gray-50 rounded-lg font-medium hover:bg-gray-100 transition whitespace-nowrap border border-gray-200 text-sm"><Icons.Save size={16} /><span className="hidden sm:inline">Backup</span></button><button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 text-gray-600 bg-gray-50 rounded-lg font-medium hover:bg-gray-100 transition whitespace-nowrap border border-gray-200 text-sm"><Icons.Upload size={16} /><span className="hidden sm:inline">Restore</span></button><div className="w-px h-8 bg-gray-200 mx-1"></div><button onClick={exportToCSV} className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition whitespace-nowrap"><Icons.Download size={16} /> CSV</button></div>)}
+                            {currentScreen === 'planner' && (<div className="flex gap-2 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 items-center"><input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" /><button onClick={handleBackup} className="flex items-center gap-2 px-3 py-2 text-gray-600 bg-gray-50 rounded-lg font-medium hover:bg-gray-100 transition whitespace-nowrap border border-gray-200 text-sm"><Icons.Save size={16} /><span className="hidden sm:inline">Backup</span></button><button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 text-gray-600 bg-gray-50 rounded-lg font-medium hover:bg-gray-100 transition whitespace-nowrap border border-gray-200 text-sm"><Icons.Upload size={16} /><span className="hidden sm:inline">Restore</span></button></div>)}
                         </div>
                     </header>
                     {currentScreen === 'planner' && (<main className="max-w-[1900px] mx-auto px-4 py-8">{currentView.every(d => !d.data.training1.type && !d.data.training2.type) && <div className="mb-8 bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3"><Icons.Info className="w-5 h-5 text-blue-600 mt-0.5" /><div><h3 className="font-semibold text-blue-900">Start Planning</h3><p className="text-blue-700 text-sm">Select a date. Drag & Drop workouts to move them.</p></div></div>}<div className="space-y-4">{[...Array(8)].map((_, rowIndex) => renderRow(rowIndex))}</div></main>)}
