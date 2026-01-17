@@ -827,6 +827,7 @@
 
             weeks.flat().forEach(({ dateKey, data, isInMonth }) => {
                 if (!isInMonth) return;
+                if (data.status === 'missed') return;
                 ['training1', 'training2'].forEach(k => {
                     const s = data[k];
                     if (!s || !s.type) return;
@@ -1070,6 +1071,7 @@
                 // Calculate Totals
                 let runDist = 0, runTime = 0, runCount = 0, cycleDist = 0, cycleTime = 0, gymCount = 0, footballCount = 0;
                 days.forEach(d => {
+                    if (d.data.status === 'missed') return;
                     [d.data.training1, d.data.training2].forEach(s => {
                         if (!s.type) return;
                         if (s.type === 'Gym') gymCount++;
