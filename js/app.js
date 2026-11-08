@@ -90,11 +90,6 @@ function App() {
         if (!item) return;
         setWorkoutDB(prev => ({ ...prev, [item.dateKey]: updatedDay }));
     };
-    const handleUpdateCNS = (dayIndex, level) => {
-        const item = currentView[dayIndex];
-        if (item) handleUpdateDay(dayIndex, { ...item.data, cnsFatigue: level });
-    };
-
     const handleSaveTraining = (updatedSession) => {
         if (!activeModal) return;
 
@@ -232,7 +227,7 @@ function App() {
                     </div>
                     <div className="h-px bg-gray-200 flex-1"></div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">{days.map((item, idx) => (<DayCard key={item.dateKey} day={item.data} index={startIndex + idx} onEditTraining={handleEditTraining} onUpdateDay={handleUpdateDay} onUpdateCNS={handleUpdateCNS} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} />))}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">{days.map((item, idx) => (<DayCard key={item.dateKey} day={item.data} index={startIndex + idx} onEditTraining={handleEditTraining} onUpdateDay={handleUpdateDay} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} />))}</div>
             </div>
         );
     };

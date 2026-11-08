@@ -25,7 +25,6 @@ const createEmptyDay = (dateObj) => {
     return {
         dayName: days[dateObj.getDay()],
         date: dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-        cnsFatigue: null,
         status: 'neutral',
         dailyNotes: '',
         training1: { id: `t1-${dateObj.getTime()}`, type: null, subType: '', notes: '', time: '' },

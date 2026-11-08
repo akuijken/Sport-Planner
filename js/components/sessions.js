@@ -1,4 +1,4 @@
-// --- SESSION SLOT AND CNS CONTROL COMPONENTS ---
+// --- SESSION SLOT COMPONENT ---
 
 const SessionSlot = ({ session, label, onClick, icon, onDragStart, onDrop, onDragOver }) => {
     const { calculateWorkoutStats, getSessionColorClass } = window.SportPlanner.Utils;
@@ -65,16 +65,7 @@ const SessionSlot = ({ session, label, onClick, icon, onDragStart, onDrop, onDra
     );
 };
 
-const CNSControl = ({ level, onChange }) => {
-    const Icons = window.SportPlanner.Icons;
-
-    return (
-        <div className="bg-slate-50 border-t border-gray-100 p-2 mt-auto"><div className="flex items-center gap-2 mb-2 px-1"><div className="p-0.5 bg-slate-100 rounded"><Icons.Zap size={14} className="text-slate-500" /></div><span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">CNS Fatigue</span></div><div className="flex gap-1"><button onClick={() => onChange(level === 'Low' ? null : 'Low')} className={`flex-1 py-1 text-[10px] font-bold rounded transition-colors border ${level === 'Low' ? 'bg-green-100 text-green-700 border-green-200 ring-1 ring-green-400' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}>Low</button><button onClick={() => onChange(level === 'Medium' ? null : 'Medium')} className={`flex-1 py-1 text-[10px] font-bold rounded transition-colors border ${level === 'Medium' ? 'bg-orange-100 text-orange-700 border-orange-200 ring-1 ring-orange-400' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}>Med</button><button onClick={() => onChange(level === 'High' ? null : 'High')} className={`flex-1 py-1 text-[10px] font-bold rounded transition-colors border ${level === 'High' ? 'bg-red-100 text-red-700 border-red-200 ring-1 ring-red-400' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}>High</button></div></div>
-    );
-};
-
 window.SportPlanner = window.SportPlanner || {};
 window.SportPlanner.Sessions = {
-    SessionSlot,
-    CNSControl
+    SessionSlot
 };

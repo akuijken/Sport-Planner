@@ -2,7 +2,7 @@
 
 const DayCard = ({ day, onEditTraining, onUpdateDay, index, onDragStart, onDrop, onDragOver }) => {
     const { toISODate } = window.SportPlanner.Utils;
-    const { SessionSlot, CNSControl } = window.SportPlanner.Sessions;
+    const { SessionSlot } = window.SportPlanner.Sessions;
     const Icons = window.SportPlanner.Icons;
 
     const isPast = new Date(day.dateKey) < new Date(toISODate(new Date()));
@@ -33,7 +33,6 @@ const DayCard = ({ day, onEditTraining, onUpdateDay, index, onDragStart, onDrop,
                 <div className="flex-1"><SessionSlot session={day.training1} label="Morning" onClick={() => onEditTraining(index, 'training1')} icon={<Icons.Sun className="w-4 h-4" />} onDragStart={(e) => onDragStart(e, index, 'training1')} onDrop={(e) => onDrop(e, index, 'training1')} onDragOver={onDragOver} /></div>
                 <div className="flex-1"><SessionSlot session={day.training2} label="Evening" onClick={() => onEditTraining(index, 'training2')} icon={<Icons.Moon className="w-4 h-4" />} onDragStart={(e) => onDragStart(e, index, 'training2')} onDrop={(e) => onDrop(e, index, 'training2')} onDragOver={onDragOver} /></div>
             </div>
-            <CNSControl level={day.cnsFatigue} onChange={(l) => onUpdateDay(index, { ...day, cnsFatigue: l })} />
             <div className="px-2 pb-2">
                 <textarea placeholder="Daily notes..." value={day.dailyNotes || ''} onChange={(e) => onUpdateDay(index, { ...day, dailyNotes: e.target.value })} className="w-full text-xs bg-gray-50 border border-gray-200 rounded p-1.5 outline-none resize-none h-8 focus:h-16 transition-all" />
             </div>
